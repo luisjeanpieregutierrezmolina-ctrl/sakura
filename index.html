@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Le petite fille de la mer</title>
+    <title>Le petite fille de la mer | Luis Jeanpiere</title>
+    
+    <meta name="description" content="Poema interactivo de Luis Jeanpiere.">
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;1,400;1,600&family=Dancing+Script:wght@500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital@0;1&family=Dancing+Script:wght@500&display=swap');
 
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
-            background: #050508;
+            background-color: #050508;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -18,74 +22,69 @@
             font-family: 'Crimson Text', serif;
         }
 
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-        /* Contenedor de la Carta / Poema */
-        #envelope-wrapper {
+        canvas {
             position: absolute;
-            left: 5%;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 35%;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
 
+        #ui-layer {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 1200px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Sobre de la carta */
         #envelope {
-            width: 150px;
-            height: 100px;
+            width: 180px;
+            height: 120px;
             background: #f2e8cf;
-            cursor: pointer;
+            border-radius: 4px;
             display: flex;
             justify-content: center;
             align-items: center;
+            cursor: pointer;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-radius: 4px;
-            transition: 0.8s ease;
+            transition: all 0.5s ease;
+            border: 1px solid #d4c4a8;
         }
 
-        #envelope.open {
-            transform: scale(0);
-            opacity: 0;
-            pointer-events: none;
-        }
+        #envelope:hover { transform: scale(1.1); background: #fff; }
 
-        #poem-scroll {
-            width: 100%;
-            max-height: 85vh; /* Altura máxima para que no se corte */
-            overflow-y: auto; /* Scroll si el texto es largo */
+        .hidden { display: none !important; }
+
+        /* Contenedor del Poema */
+        #poem-container {
+            width: 40%;
+            color: #ffdae0;
             opacity: 0;
             transition: opacity 2s ease;
-            scrollbar-width: thin;
-            scrollbar-color: #ffb7c5 transparent;
-            padding-right: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-right: 20px;
         }
 
-        /* Estética del Scroll para Chrome/Edge */
-        #poem-scroll::-webkit-scrollbar { width: 4px; }
-        #poem-scroll::-webkit-scrollbar-thumb { background: #ffb7c5; border-radius: 10px; }
+        #poem-container::-webkit-scrollbar { width: 4px; }
+        #poem-container::-webkit-scrollbar-thumb { background: #ffb7c5; }
 
-        h1 { font-family: 'Dancing Script', cursive; font-size: 2.8rem; color: #ffb7c5; margin: 0 0 20px 0; }
-        .stanza { 
-            margin-bottom: 25px; 
-            line-height: 1.6; 
-            font-style: italic; 
-            font-size: 1.1rem; 
-            color: #ffdae0;
-            white-space: pre-line; /* Mantiene los saltos de línea */
-        }
+        h1 { font-family: 'Dancing Script', cursive; font-size: 3rem; color: #ffb7c5; margin: 0; }
+        .stanza { margin-top: 20px; line-height: 1.6; font-size: 1.2rem; font-style: italic; white-space: pre-line; }
     </style>
 </head>
 <body>
 
-    <div id="envelope-wrapper">
+    <canvas id="canvas"></canvas>
+
+    <div id="ui-layer">
         <div id="envelope">
-            <span style="color: #6d4c41; font-size: 0.8rem; letter-spacing: 2px;">LEER CARTA</span>
+            <b style="color: #6d4c41; letter-spacing: 1px;">ABRIR CARTA</b>
         </div>
 
-        <div id="poem-scroll" id="poem-container">
+        <div id="poem-container" class="hidden">
             <h1>Le petite fille de la mer</h1>
             <div class="stanza">
                 Esta noche he vuelto al mismo banco,
@@ -111,86 +110,81 @@
                 que mi soledad volvió eterno.
 
                 Y sin embargo te fuiste,
-                sin ruido, sin despedida,
+                sin despedida,
                 como caen los pétalos esta noche.
 
-                Ahora lo entiendo:
-                hay presencias que no vienen a quedarse…
-                y aun así, si regresaras,
-                aunque fuera solo un instante,
+                Si regresaras, aunque fuera solo un instante,
                 yo volvería a esperarte.
             </div>
         </div>
     </div>
 
-    <canvas id="canvas"></canvas>
-
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let width, height, active = false;
+        const envelope = document.getElementById('envelope');
+        const poem = document.getElementById('poem-container');
+
+        let width, height;
         const petals = [];
         const branches = [];
-        const flowersOnTree = [];
+        const staticFlowers = [];
 
-        function init() {
+        function resize() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         }
 
-        function drawPetal(x, y, size, angle, color, alpha) {
+        window.addEventListener('resize', resize);
+        resize();
+
+        function createPetal() {
+            return {
+                x: Math.random() * width,
+                y: -20,
+                s: Math.random() * 4 + 2,
+                vX: Math.random() * 2 - 1,
+                vY: Math.random() * 1 + 0.5,
+                a: Math.random() * Math.PI
+            };
+        }
+
+        function drawPetal(x, y, s, a, alpha) {
             ctx.save();
             ctx.translate(x, y);
-            ctx.rotate(angle);
+            ctx.rotate(a);
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.bezierCurveTo(size, -size, size * 1.5, size, 0, size * 1.5);
-            ctx.bezierCurveTo(-size * 1.5, size, -size, -size, 0, 0);
-            ctx.fillStyle = color;
-            ctx.globalAlpha = alpha;
+            ctx.bezierCurveTo(s, -s, s * 1.5, s, 0, s * 1.5);
+            ctx.bezierCurveTo(-s * 1.5, s, -s, -s, 0, 0);
+            ctx.fillStyle = `rgba(255, 183, 197, ${alpha})`;
             ctx.fill();
             ctx.restore();
         }
 
-        function createTree(x, y, len, angle, w) {
-            if (len < 10) {
-                flowersOnTree.push({x, y, s: Math.random()*3+2, a: Math.random()*5, c: "#ffb7c5", o: 0});
+        function drawTree(x, y, len, angle, w) {
+            if (len < 8) {
+                staticFlowers.push({x, y, s: Math.random() * 3 + 2, a: Math.random() * 5, o: 0});
                 return;
             }
-            const nx = x + Math.sin(angle) * len;
-            const ny = y - Math.cos(angle) * len;
-            branches.push({x1: x, y1: y, x2: nx, y2: ny, w: w});
-            
+
+            const x2 = x + Math.sin(angle) * len;
+            const y2 = y - Math.cos(angle) * len;
+
+            branches.push({x1: x, y1: y, x2, y2, w});
+
             setTimeout(() => {
-                createTree(nx, ny, len * 0.78, angle + 0.4, w * 0.7);
-                createTree(nx, ny, len * 0.78, angle - 0.4, w * 0.7);
-            }, 40);
+                drawTree(x2, y2, len * 0.75, angle + 0.4, w * 0.7);
+                drawTree(x2, y2, len * 0.75, angle - 0.4, w * 0.7);
+            }, 50);
         }
 
-        class FallingPetal {
-            constructor() { this.reset(); this.y = Math.random() * height; }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = -20;
-                this.size = Math.random() * 4 + 2;
-                this.speedY = Math.random() * 0.8 + 0.4;
-                this.speedX = (Math.random() - 0.5) * 1;
-                this.angle = Math.random() * 5;
-            }
-            update() {
-                this.y += this.speedY;
-                this.x += Math.sin(this.y / 50);
-                this.angle += 0.01;
-                if (this.y > height) this.reset();
-            }
-            draw() { drawPetal(this.x, this.y, this.size, this.angle, "#ffdae0", 0.6); }
-        }
-
-        function animate() {
+        function update() {
             ctx.clearRect(0, 0, width, height);
-            
-            ctx.lineCap = "round";
-            ctx.strokeStyle = "#1a0f0a";
+
+            // Ramas
+            ctx.strokeStyle = '#1a0f0a';
+            ctx.lineCap = 'round';
             branches.forEach(b => {
                 ctx.lineWidth = b.w;
                 ctx.beginPath();
@@ -199,28 +193,34 @@
                 ctx.stroke();
             });
 
-            flowersOnTree.forEach(f => {
-                if(f.o < 1) f.o += 0.01;
-                drawPetal(f.x, f.y, f.s, f.a, f.c, f.o);
+            // Flores fijas
+            staticFlowers.forEach(f => {
+                if (f.o < 1) f.o += 0.01;
+                drawPetal(f.x, f.y, f.s, f.a, f.o);
             });
 
-            petals.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
+            // Pétalos cayendo
+            petals.forEach((p, i) => {
+                p.y += p.vY;
+                p.x += p.vX + Math.sin(p.y / 50);
+                p.a += 0.01;
+                drawPetal(p.x, p.y, p.s, p.a, 0.6);
+                if (p.y > height) petals[i] = createPetal();
+            });
+
+            requestAnimationFrame(update);
         }
 
-        document.getElementById('envelope').addEventListener('click', function() {
-            this.classList.add('open');
-            active = true;
-            setTimeout(() => {
-                document.getElementById('poem-scroll').style.opacity = '1';
-                createTree(width * 0.75, height, height * 0.22, 0, 12);
-                for(let i=0; i<70; i++) petals.push(new FallingPetal());
-                animate();
-            }, 800);
+        envelope.addEventListener('click', () => {
+            envelope.classList.add('hidden');
+            poem.classList.remove('hidden');
+            setTimeout(() => poem.style.opacity = '1', 100);
+            
+            // Iniciar Árbol y Lluvia
+            drawTree(width * 0.75, height, height * 0.2, 0, 10);
+            for(let i = 0; i < 50; i++) petals.push(createPetal());
+            update();
         });
-
-        window.addEventListener('resize', init);
-        init();
     </script>
 </body>
 </html>
