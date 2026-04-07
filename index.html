@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>Le petite fille de la mer | Luis Jeanpiere</title>
-    <meta name="description" content="Poema interactivo Le petite fille de la mer con animación de árbol Sakura. Creado por Luis Jeanpiere Gutiérrez Molina.">
-    <meta name="keywords" content="Luis Jeanpiere, Sakura, Poema, Interactivo, GitHub, Le petite fille de la mer">
-    <link rel="canonical" href="https://luisjeanpieregutierrezmolina-ctrl.github.io/sakura/" />
-
+    <title>Le petite fille de la mer</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;1,400;1,600&family=Dancing+Script:wght@500&display=swap');
 
@@ -25,61 +20,61 @@
 
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-        /* Contenedor de la Carta */
+        /* Contenedor de la Carta / Poema */
         #envelope-wrapper {
             position: absolute;
             left: 5%;
             top: 50%;
             transform: translateY(-50%);
-            width: 40%;
+            width: 35%;
             z-index: 100;
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
         }
 
         #envelope {
-            width: 180px;
-            height: 120px;
+            width: 150px;
+            height: 100px;
             background: #f2e8cf;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border-radius: 4px;
             transition: 0.8s ease;
-            border: 1px solid #d4c4a8;
         }
 
-        #envelope:hover { transform: scale(1.05); background: #fffcf2; }
+        #envelope.open {
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
 
-        #envelope.open { transform: scale(0); opacity: 0; pointer-events: none; }
-
-        /* Contenedor del Poema con Scroll */
         #poem-scroll {
             width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
+            max-height: 85vh; /* Altura máxima para que no se corte */
+            overflow-y: auto; /* Scroll si el texto es largo */
             opacity: 0;
-            transition: opacity 2.5s ease;
-            padding-right: 20px;
+            transition: opacity 2s ease;
             scrollbar-width: thin;
             scrollbar-color: #ffb7c5 transparent;
+            padding-right: 15px;
         }
 
-        #poem-scroll::-webkit-scrollbar { width: 5px; }
+        /* Estética del Scroll para Chrome/Edge */
+        #poem-scroll::-webkit-scrollbar { width: 4px; }
         #poem-scroll::-webkit-scrollbar-thumb { background: #ffb7c5; border-radius: 10px; }
 
-        h1 { font-family: 'Dancing Script', cursive; font-size: 3rem; color: #ffb7c5; margin: 0 0 20px 0; text-shadow: 0 0 10px rgba(255,183,197,0.3); }
-        
+        h1 { font-family: 'Dancing Script', cursive; font-size: 2.8rem; color: #ffb7c5; margin: 0 0 20px 0; }
         .stanza { 
-            margin-bottom: 30px; 
-            line-height: 1.7; 
+            margin-bottom: 25px; 
+            line-height: 1.6; 
             font-style: italic; 
-            font-size: 1.2rem; 
+            font-size: 1.1rem; 
             color: #ffdae0;
-            white-space: pre-line;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            white-space: pre-line; /* Mantiene los saltos de línea */
         }
     </style>
 </head>
@@ -87,10 +82,10 @@
 
     <div id="envelope-wrapper">
         <div id="envelope">
-            <span style="color: #6d4c41; font-weight: bold; font-size: 0.9rem; letter-spacing: 2px;">ABRIR CARTA</span>
+            <span style="color: #6d4c41; font-size: 0.8rem; letter-spacing: 2px;">LEER CARTA</span>
         </div>
 
-        <div id="poem-scroll">
+        <div id="poem-scroll" id="poem-container">
             <h1>Le petite fille de la mer</h1>
             <div class="stanza">
                 Esta noche he vuelto al mismo banco,
@@ -133,7 +128,7 @@
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let width, height;
+        let width, height, active = false;
         const petals = [];
         const branches = [];
         const flowersOnTree = [];
@@ -175,4 +170,57 @@
         class FallingPetal {
             constructor() { this.reset(); this.y = Math.random() * height; }
             reset() {
-                this.x
+                this.x = Math.random() * width;
+                this.y = -20;
+                this.size = Math.random() * 4 + 2;
+                this.speedY = Math.random() * 0.8 + 0.4;
+                this.speedX = (Math.random() - 0.5) * 1;
+                this.angle = Math.random() * 5;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += Math.sin(this.y / 50);
+                this.angle += 0.01;
+                if (this.y > height) this.reset();
+            }
+            draw() { drawPetal(this.x, this.y, this.size, this.angle, "#ffdae0", 0.6); }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "#1a0f0a";
+            branches.forEach(b => {
+                ctx.lineWidth = b.w;
+                ctx.beginPath();
+                ctx.moveTo(b.x1, b.y1);
+                ctx.lineTo(b.x2, b.y2);
+                ctx.stroke();
+            });
+
+            flowersOnTree.forEach(f => {
+                if(f.o < 1) f.o += 0.01;
+                drawPetal(f.x, f.y, f.s, f.a, f.c, f.o);
+            });
+
+            petals.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        document.getElementById('envelope').addEventListener('click', function() {
+            this.classList.add('open');
+            active = true;
+            setTimeout(() => {
+                document.getElementById('poem-scroll').style.opacity = '1';
+                createTree(width * 0.75, height, height * 0.22, 0, 12);
+                for(let i=0; i<70; i++) petals.push(new FallingPetal());
+                animate();
+            }, 800);
+        });
+
+        window.addEventListener('resize', init);
+        init();
+    </script>
+</body>
+</html>
